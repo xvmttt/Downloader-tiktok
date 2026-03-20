@@ -56,15 +56,20 @@ function performDownload(url) {
             document.body.appendChild(resultDiv);
             }
 
+            const proxyUrl = `https://tiktok-saver-l18l.onrender.com/proxy_video?url=${encodeURIComponent(data.download_url)}`;
+
             resultDiv.innerHTML = `
-                <div style="margin-top: 20px; border: 1px solid #ddd; padding: 15px; border-radius: 12px; text-align: center;">
-                    <h4>${data.title}</h4>
-                    <a href="${data.download_url}" target="_blank" rel="noopener noreferrer" 
-                    style="display: inline-block; padding: 10px 20px; background: #fe2c55; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                    Открыть видео напрямую
-                    </a>
-                    <p style="font-size: 12px; color: gray; margin-top: 8px;">Если видео не качается сразу: нажми на плеер правой кнопкой -> "Сохранить видео как"</p>
-                </div>
+            <div style="margin-top: 20px; text-align: center;">
+            <h4>${data.title}</h4>
+            <video controls width="100%" style="max-width: 300px; border-radius: 8px;">
+            <source src="${proxyUrl}" type="video/mp4">
+            </video>
+            <br><br>
+            <a href="${proxyUrl}" 
+           style="padding: 10px 20px; background: #fe2c55; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+           Скачать через сервер
+            </a>
+            </div>
             `;
 
         }catch (renderError) {

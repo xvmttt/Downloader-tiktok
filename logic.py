@@ -2,11 +2,36 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS  
 import yt_dlp
 import os
+import requests 
+from flask import Response
 
 IS_RENDER = os.environ.get('RENDER')
-
 app = Flask(__name__)
 CORS(app)
+
+@app.route('/proxy_video')
+def proxy_video():
+    video_url = request.args.get('url')
+    if not video_url:
+        return "No URL provided", 400
+
+    # Заголовки, чтобы TikTok отдал файл серверу
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Referer': 'https://www.tiktok.com/'
+    }
+
+    # Сервер Render делает запрос к TikTok
+    req = requests.get(video_url, headers=headers, stream=True)
+    
+    # Передаем поток данных от TikTok прямо пользователю
+    return Response(
+        req.iter_content(chunk_size=1024),
+        content_type=req.headers.get('Content-Type'),
+        headers={
+            "Content-Disposition": "attachment; filename=tiktok_video.mp4"
+        }
+    )
 
 def get_ydl_opts():
     cookies_content = os.environ.get('TIKTOK_COOKIES')
