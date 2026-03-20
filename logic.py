@@ -44,29 +44,37 @@ def proxy_video():
     if not video_url:
         return "No URL provided", 400
 
-    cookies_content = os.environ.get('TIKTOK_COOKIES', '')
+    cookies_content = os.environ.get('TIKTOK_COOKIES', '').strip()
 
+    # Улучшенные заголовки для обхода 403 при стриминге
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Referer': 'https://www.tiktok.com/',
-        'Cookie': cookies_content, # Здесь строка работает отлично
-        'Range': 'bytes=0-'
+        'Accept': 'video/webm,video/ogg,video/*;q=0.9,application/ogg;q=0.7,audio/*;q=0.6,*/*;q=0.5',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cookie': cookies_content,
+        'Connection': 'keep-alive',
+        'Range': request.headers.get('Range', 'bytes=0-') # Передаем Range от браузера
     }
 
     try:
-        req = requests.get(video_url, headers=headers, stream=True, timeout=30, verify=False)
+        # Используем сессию для стабильности
+        session = requests.Session()
+        req = session.get(video_url, headers=headers, stream=True, timeout=15, verify=False)
         
-        # Если TikTok все равно ругается, выводим статус
-        if req.status_code >= 400:
-             return f"TikTok Proxy Error: {req.status_code}", req.status_code
+        if req.status_code == 403:
+             return f"TikTok Proxy Error 403: Доступ запрещен. Попробуйте обновить куки в Render.", 403
+
+        # Создаем ответ с правильными заголовками стриминга
+        excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection']
+        resp_headers = [(name, value) for (name, value) in req.raw.headers.items()
+                        if name.lower() not in excluded_headers]
 
         return Response(
             req.iter_content(chunk_size=1024*1024),
-            content_type=req.headers.get('Content-Type', 'video/mp4'),
-            headers={
-                "Content-Disposition": "attachment; filename=video.mp4",
-                "Access-Control-Allow-Origin": "*"
-            }
+            status=req.status_code,
+            content_type=req.headers.get('Content-Type'),
+            headers=resp_headers
         )
     except Exception as e:
         return f"Proxy Error: {str(e)}", 500
