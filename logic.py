@@ -13,26 +13,28 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 def get_ydl_opts():
-    # Получаем ту самую длинную строку куков из Render
     cookies_content = os.environ.get('TIKTOK_COOKIES', '')
 
+    # ГАРАНТИРУЕМ, что здесь нет путей к файлам
     opts = {
         'format': 'best',
         'nocheckcertificate': True,
         'quiet': True,
         'no_warnings': True,
-        # УДАЛЯЕМ строку 'cookiefile', она больше не нужна!
+        # Мы НЕ используем 'cookiefile' вообще!
         'extractor_args': {'tiktok': {'web_visit': True}},
         'http_headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
             'Accept': '*/*',
             'Referer': 'https://www.tiktok.com/',
-            'Cookie': cookies_content  # Передаем куки как заголовок!
+            'Cookie': cookies_content 
         }
     }
     
+    # Убедись, что ниже нет блоков, которые добавляют opts['cookiefile']
     if not IS_RENDER:
         opts['proxy'] = 'http://127.0.0.1:12334'
+        # Если ты на локалке, проверь, чтобы здесь тоже не подмешивался файл
             
     return opts
 
