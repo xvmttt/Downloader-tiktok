@@ -15,35 +15,32 @@ def proxy_video():
     if not video_url:
         return "No URL provided", 400
 
+    # Оставляем только самые важные заголовки без куков (для начала)
+    # Чтобы проверить, не в куках ли была ошибка 500
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Accept': 'video/webapp,video/*,*/*',
-        'Accept-Encoding': 'identity;q=1, *;q=0',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Range': 'bytes=0-',
-        'Referer': 'https://www.tiktok.com/',
-        'Origin': 'https://www.tiktok.com/',
-        'Sec-Fetch-Dest': 'video',
-        'Sec-Fetch-Mode': 'no-cors',
-        'Sec-Fetch-Site': 'cross-site',
+        'Referer': 'https://www.tiktok.com/'
     }
 
     try:
-        req = requests.get(video_url, headers=headers, stream=True, timeout=15)
+        # Увеличиваем timeout и отключаем проверку SSL, если TikTok капризничает
+        req = requests.get(video_url, headers=headers, stream=True, timeout=20, verify=False)
         
-        if req.status_code == 200 and int(req.headers.get('Content-Length', 0)) < 1000:
-             print(">>> TikTok отдал заглушку вместо видео")
-        
+        # Если TikTok все равно ругается, мы выведем это в ответ
+        if req.status_code != 200:
+            return f"TikTok returned error {req.status_code}", req.status_code
+
         return Response(
             req.iter_content(chunk_size=1024*1024),
             content_type=req.headers.get('Content-Type', 'video/mp4'),
             headers={
                 "Content-Disposition": "attachment; filename=video.mp4",
-                "Access-Control-Allow-Origin": "*" 
+                "Access-Control-Allow-Origin": "*"
             }
         )
     except Exception as e:
-        return f"Proxy Error: {str(e)}", 500
+        # Это то, что выдает 500 ошибку — выводим текст ошибки на экран
+        return f"Proxy logic error: {str(e)}", 500
 
 def get_ydl_opts():
     cookies_content = os.environ.get('TIKTOK_COOKIES')
