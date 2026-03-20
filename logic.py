@@ -2,21 +2,35 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS  
 import yt_dlp
 import requests
+import os
 
-
-proxies = {
-    'http': 'http://127.0.0.1:12334',
-    'https': 'http://127.0.0.1:12334',
-}
-
-try:
-    response = requests.get('https://api.ipify.org?format=json', proxies=proxies, timeout=5)
-    print("Твой IP через VPN:", response.json()['ip'])
-except Exception as e:
-    print("Ошибка подключения к прокси:", e)
+IS_RENDER = os.environ.get('RENDER')
 
 app = Flask(__name__)
 CORS(app, resources={r"/download": {"origins": "http://127.0.0.1:5500"}})
+
+def get_ydl_opts():
+    opts = {
+        'format': 'best',
+        'nocheckcertificate': True,
+        'quiet': True,
+        'no_warnings': True,
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    }
+    
+    # Если мы НЕ на Render, используем твой локальный прокси Hiddify
+    if not IS_RENDER:
+        opts['proxy'] = 'http://127.0.0.1:12334'
+        print("Запуск: Локально (используем прокси)")
+    else:
+        print("Запуск: Render (прокси отключен)")
+        
+    # Куки на Render загружать сложно, попробуем сначала без них
+    if os.path.exists('cookies.txt'):
+        opts['cookiefile'] = 'cookies.txt'
+        
+    return opts
+
 
 ydl_opts = {
         'proxy': 'http://127.0.0.1:12334',
@@ -50,7 +64,7 @@ def download_video():
     video_url = data.get('url')
 
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL(get_ydl_opts()) as ydl:
             info = ydl.extract_info(video_url, download=False)
 
             result = {
@@ -64,4 +78,5 @@ def download_video():
     
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(port=port, host='0.0.0.0')
