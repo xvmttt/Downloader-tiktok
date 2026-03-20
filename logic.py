@@ -1,13 +1,12 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS  
 import yt_dlp
-import requests
 import os
 
 IS_RENDER = os.environ.get('RENDER')
 
 app = Flask(__name__)
-CORS(app, resources={r"/download": {"origins": "http://127.0.0.1:5500"}})
+CORS(app)
 
 def get_ydl_opts():
     opts = {
@@ -15,7 +14,17 @@ def get_ydl_opts():
         'nocheckcertificate': True,
         'quiet': True,
         'no_warnings': True,
-        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'extractor_args': {
+            'tiktok': {
+                'web_visit': True,
+            }
+        },
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Referer': 'https://www.tiktok.com/',
+        }
     }
     
     # Если мы НЕ на Render, используем твой локальный прокси Hiddify
@@ -30,30 +39,6 @@ def get_ydl_opts():
         opts['cookiefile'] = 'cookies.txt'
         
     return opts
-
-
-ydl_opts = {
-        'proxy': 'http://127.0.0.1:12334',
-        'format': 'best',
-        'cookiefile': 'cookies.txt', 
-        'force_generic_extractor': False,
-        'nocheckcertificate': True,
-        'quiet': True,
-        'no_warnings': True,
-        
-        'extractor_args': {
-            'tiktok': {
-                'web_visit': True,
-            }
-        },
-
-        'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-            'Accept': '*/*',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Referer': 'https://www.tiktok.com/',
-        }
-    }
 
 @app.route('/download', methods=['POST'])
 def download_video():

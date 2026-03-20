@@ -1,5 +1,8 @@
 const inputLink = document.getElementById('input-link')
 const downloadBtn = document.getElementById('downloadBtn');
+const customAlert = document.getElementById('customAlert'); 
+const alertMessage = document.getElementById('alertMessage'); 
+const closeAlert = document.getElementById('closeAlert');
 
 document.addEventListener('submit', function(e) {
     e.preventDefault();
@@ -10,7 +13,7 @@ downloadBtn.addEventListener('click', function(event) {
     event.preventDefault();
     event.stopPropagation(); 
 
-    const url = inputLink.value;
+    const url = inputLink.value.trim();
     
     
     console.log("Кнопка нажата, URL:", url);
@@ -26,7 +29,7 @@ downloadBtn.addEventListener('click', function(event) {
 
 
 function performDownload(url) {
-    fetch('http://127.0.0.1:5000/download', {
+    fetch('https://tiktok-saver-l18l.onrender.com/download', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -53,7 +56,6 @@ function performDownload(url) {
             document.body.appendChild(resultDiv);
             }
 
-        // Выводим плеер и кнопку
             resultDiv.innerHTML = `
                 <div style="margin-top: 20px; border: 1px solid #ddd; padding: 15px; border-radius: 12px; text-align: center;">
                     <h4>${data.title}</h4>
