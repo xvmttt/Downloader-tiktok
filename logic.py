@@ -15,28 +15,32 @@ def proxy_video():
     if not video_url:
         return "No URL provided", 400
 
-    # Берем те же настройки, что и для поиска (с куками)
-    cookies_content = os.environ.get('TIKTOK_COOKIES')
-    
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'video/webapp,video/*,*/*',
+        'Accept-Encoding': 'identity;q=1, *;q=0',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Range': 'bytes=0-',
         'Referer': 'https://www.tiktok.com/',
-        # Если есть куки, передаем их и в запросе на скачивание
-        'Cookie': cookies_content if cookies_content else ""
+        'Origin': 'https://www.tiktok.com/',
+        'Sec-Fetch-Dest': 'video',
+        'Sec-Fetch-Mode': 'no-cors',
+        'Sec-Fetch-Site': 'cross-site',
     }
 
     try:
-        # stream=True позволяет передавать видео по кусочкам, не забивая память сервера
         req = requests.get(video_url, headers=headers, stream=True, timeout=15)
         
-        # Если TikTok вернул ошибку, мы её увидим
-        if req.status_code != 200:
-            return f"TikTok error: {req.status_code}", req.status_code
-
+        if req.status_code == 200 and int(req.headers.get('Content-Length', 0)) < 1000:
+             print(">>> TikTok отдал заглушку вместо видео")
+        
         return Response(
             req.iter_content(chunk_size=1024*1024),
-            content_type=req.headers.get('Content-Type'),
-            headers={"Content-Disposition": "attachment; filename=video.mp4"}
+            content_type=req.headers.get('Content-Type', 'video/mp4'),
+            headers={
+                "Content-Disposition": "attachment; filename=video.mp4",
+                "Access-Control-Allow-Origin": "*" 
+            }
         )
     except Exception as e:
         return f"Proxy Error: {str(e)}", 500
