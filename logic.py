@@ -14,23 +14,17 @@ def proxy_video():
     video_url = request.args.get('url')
     if not video_url:
         return "No URL provided", 400
-
-    # Заголовки, чтобы TikTok отдал файл серверу
+    
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Referer': 'https://www.tiktok.com/'
     }
-
-    # Сервер Render делает запрос к TikTok
-    req = requests.get(video_url, headers=headers, stream=True)
     
-    # Передаем поток данных от TikTok прямо пользователю
+    req = requests.get(video_url, headers=headers, stream=True)
     return Response(
-        req.iter_content(chunk_size=1024),
+        req.iter_content(chunk_size=1024*1024),
         content_type=req.headers.get('Content-Type'),
-        headers={
-            "Content-Disposition": "attachment; filename=tiktok_video.mp4"
-        }
+        headers={"Content-Disposition": "attachment; filename=video.mp4"}
     )
 
 def get_ydl_opts():
