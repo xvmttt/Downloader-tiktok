@@ -47,32 +47,24 @@ function performDownload(url) {
         });
     })
     .then(data => {
-        try {
-            let resultDiv = document.getElementById('result');
-            if (!resultDiv) {
-                resultDiv = document.createElement('div');
-                resultDiv.id = 'result';
-                document.body.appendChild(resultDiv);
-            }
+    let resultDiv = document.getElementById('result');
+    // Теперь мы используем прямую ссылку от TikTok
+    const directUrl = data.download_url;
 
-            const proxyUrl = `https://tiktok-saver-l18l.onrender.com/proxy_video?url=${encodeURIComponent(data.download_url)}`;
-
-            resultDiv.innerHTML = `
-                <div style="margin-top: 20px; text-align: center;">
-                    <h4>${data.title}</h4>
-                    <video controls width="100%" style="max-width: 300px; border-radius: 8px;">
-                        <source src="${proxyUrl}" type="video/mp4">
-                    </video>
-                    <br><br>
-                    <a href="${proxyUrl}" 
-                       style="padding: 10px 20px; background: #fe2c55; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                       Скачать видео
-                    </a>
-                </div>
-            `;
-        } catch (renderError) {
-            console.error("Ошибка при отрисовке:", renderError);
-        }
+    resultDiv.innerHTML = `
+        <div style="margin-top: 20px; text-align: center;">
+            <h4>${data.title}</h4>
+            <video controls width="100%" style="max-width: 300px; border-radius: 8px;">
+                <source src="${directUrl}" type="video/mp4">
+                Ваш браузер не поддерживает видео.
+            </video>
+            <br><br>
+            <a href="${directUrl}" target="_blank" rel="noopener noreferrer"
+               style="padding: 10px 20px; background: #fe2c55; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+               Открыть видео в новой вкладке (затем Сохранить как)
+            </a>
+        </div>
+    `;
     })
     .catch(error => {
         console.error('Детали:', error);
