@@ -12,6 +12,30 @@ IS_RENDER = os.environ.get('RENDER')
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
+def get_ydl_opts():
+    # Получаем ту самую длинную строку куков из Render
+    cookies_content = os.environ.get('TIKTOK_COOKIES', '')
+
+    opts = {
+        'format': 'best',
+        'nocheckcertificate': True,
+        'quiet': True,
+        'no_warnings': True,
+        # УДАЛЯЕМ строку 'cookiefile', она больше не нужна!
+        'extractor_args': {'tiktok': {'web_visit': True}},
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept': '*/*',
+            'Referer': 'https://www.tiktok.com/',
+            'Cookie': cookies_content  # Передаем куки как заголовок!
+        }
+    }
+    
+    if not IS_RENDER:
+        opts['proxy'] = 'http://127.0.0.1:12334'
+            
+    return opts
+
 @app.route('/proxy_video')
 def proxy_video():
     video_url = request.args.get('url')
@@ -22,78 +46,28 @@ def proxy_video():
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Accept': 'video/webapp,video/*,*/*',
-        'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
         'Referer': 'https://www.tiktok.com/',
-        'Origin': 'https://www.tiktok.com/',
-        'Range': 'bytes=0-', 
-        'Cookie': cookies_content,
-        'Sec-Fetch-Dest': 'video',
-        'Sec-Fetch-Mode': 'no-cors',
-        'Sec-Fetch-Site': 'cross-site',
+        'Cookie': cookies_content, # Здесь строка работает отлично
+        'Range': 'bytes=0-'
     }
 
     try:
-        # Делаем запрос. timeout 30 секунд, так как проксирование может быть медленным
         req = requests.get(video_url, headers=headers, stream=True, timeout=30, verify=False)
         
-        # Если TikTok вернул что-то маленькое (заглушку), мы увидим это в логах Render
-        content_length = req.headers.get('Content-Length')
-        if content_length and int(content_length) < 5000:
-            print(f">>> ВНИМАНИЕ: TikTok отдал файл размером всего {content_length} байт. Это заглушка!")
+        # Если TikTok все равно ругается, выводим статус
+        if req.status_code >= 400:
+             return f"TikTok Proxy Error: {req.status_code}", req.status_code
 
-        # Формируем ответ для браузера
-        response = Response(
+        return Response(
             req.iter_content(chunk_size=1024*1024),
-            status=req.status_code,
-            content_type=req.headers.get('Content-Type', 'video/mp4')
+            content_type=req.headers.get('Content-Type', 'video/mp4'),
+            headers={
+                "Content-Disposition": "attachment; filename=video.mp4",
+                "Access-Control-Allow-Origin": "*"
+            }
         )
-        
-        # Пробрасываем важные заголовки обратно в браузер
-        response.headers['Content-Disposition'] = 'attachment; filename=video.mp4'
-        response.headers['Access-Control-Allow-Origin'] = '*'
-        # Если TikTok поддерживает докачку (Range), сообщаем об этом браузеру
-        if 'Content-Range' in req.headers:
-            response.headers['Content-Range'] = req.headers['Content-Range']
-            response.status_code = 206 # Partial Content
-
-        return response
-
     except Exception as e:
-        print(f">>> Ошибка проксирования: {str(e)}")
         return f"Proxy Error: {str(e)}", 500
-
-def get_ydl_opts():
-    cookies_content = os.environ.get('TIKTOK_COOKIES')
-    cookie_file_path = '/tmp/temp_cookies.txt' if IS_RENDER else 'temp_cookies.txt'
-
-    if cookies_content:
-        try:
-            with open(cookie_file_path, 'w', encoding='utf-8') as f:
-                f.write(cookies_content)
-        except:
-            pass
-    opts = {
-        'format': 'best',
-        'nocheckcertificate': True,
-        'quiet': True,
-        'no_warnings': True,
-        'cookiefile': cookie_file_path if os.path.exists(cookie_file_path) else None,
-        'extractor_args': {'tiktok': {'web_visit': True}},
-        'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-            'Accept': '*/*',
-            'Referer': 'https://www.tiktok.com/',
-        }
-    }
-    
-    if not IS_RENDER:
-        opts['proxy'] = 'http://127.0.0.1:12334'
-        # Если дома файл называется иначе, поправь здесь:
-        if os.path.exists('cookies.txt'):
-            opts['cookiefile'] = 'cookies.txt'
-            
-    return opts
 
 @app.route('/download', methods=['POST', 'OPTIONS'])
 def download_video():
