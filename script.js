@@ -47,34 +47,35 @@ function performDownload(url) {
         });
     })
     .then(data => {
-    let resultDiv = document.getElementById('result');
-    if (!resultDiv) {
-        resultDiv = document.createElement('div');
-        resultDiv.id = 'result';
-        downloadBtn.parentNode.insertBefore(resultDiv, downloadBtn.nextSibling);
-    }
+        let resultDiv = document.getElementById('result');
+        if (!resultDiv) {
+            resultDiv = document.createElement('div');
+            resultDiv.id = 'result';
+            downloadBtn.parentNode.insertBefore(resultDiv, downloadBtn.nextSibling);
+        }
 
-    // Ссылка на твой прокси (если TikTok пропустит)
-    const proxyUrl = `https://tiktok-saver-l18l.onrender.com/proxy_video?url=${encodeURIComponent(data.download_url)}`;
-    // Прямая ссылка (для открытия в новой вкладке)
-    const directUrl = data.download_url;
+        const directUrl = data.download_url;
 
-    resultDiv.innerHTML = `
-        <div style="margin-top: 20px; text-align: center;">
-            <h4 style="color: white;">${data.title}</h4>
-            <video controls width="100%" style="max-width: 300px; border-radius: 10px; border: 2px solid #fe2c55;">
-                <source src="${proxyUrl}" type="video/mp4">
-                <source src="${directUrl}" type="video/mp4">
-            </video>
-            <div style="margin-top: 15px;">
-                <a href="${directUrl}" target="_blank" rel="noopener noreferrer" 
-                   style="display: inline-block; padding: 10px 20px; background: #fe2c55; color: white; text-decoration: none; border-radius: 20px; font-weight: bold;">
-                   Скачать напрямую
+        resultDiv.innerHTML = `
+            <div style="margin-top: 20px; text-align: center; background: #222; padding: 20px; border-radius: 15px;">
+                <h4 style="color: white; margin-bottom: 15px;">${data.title}</h4>
+                
+                <p style="color: #ccc; font-size: 14px;">TikTok блокирует прямой просмотр, но вы можете скачать файл:</p>
+                
+                <a href="${directUrl}" 
+                   target="_blank" 
+                   rel="noopener noreferrer"
+                   style="display: inline-block; padding: 15px 30px; background: #fe2c55; color: white; text-decoration: none; border-radius: 30px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 15px rgba(254, 44, 85, 0.4);">
+                   СКАЧАТЬ ВИДЕО MP4
                 </a>
+                
+                <p style="color: #888; font-size: 12px; margin-top: 15px;">
+                    * Если видео открылось в браузере, нажмите "три точки" и "Скачать" <br> 
+                    или зажмите видео пальцем и выберите "Сохранить".
+                </p>
             </div>
-        </div>
-    `;
-})
+        `;
+    })
     .catch(error => {
         console.error('Детали:', error);
         showAlert(error.message);
