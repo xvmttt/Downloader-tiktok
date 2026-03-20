@@ -102,29 +102,25 @@ def download_video():
 
     data = request.get_json()
     if not data or 'url' not in data:
-        return jsonify({'error': 'No URL provided'}), 400
+        return jsonify({'error': 'URL не предоставлен'}), 400
     
     video_url = data.get('url')
 
     try:
-        # Пытаемся получить инфо о видео
+        # Пытаемся получить инфо
         with yt_dlp.YoutubeDL(get_ydl_opts()) as ydl:
             info = ydl.extract_info(video_url, download=False)
             
-            # Если yt-dlp выдал пустой результат
-            if not info or 'url' not in info:
-                raise Exception("TikTok не отдал прямую ссылку на видео")
-
             return jsonify({
                 'title': info.get('title', 'TikTok Video'),
                 'download_url': info.get('url'),
                 'thumbnail': info.get('thumbnail')
             }), 200
     except Exception as e:
-        # Выводим ошибку в консоль Render для отладки
-        print(f">>> Ошибка yt-dlp: {str(e)}")
-        # Возвращаем текст ошибки на фронтенд, чтобы ты видел его в showAlert
-        return jsonify({'error': f"Ошибка TikTok: {str(e)}"}), 400
+        # САМОЕ ВАЖНОЕ: возвращаем реальный текст ошибки yt-dlp
+        error_message = str(e)
+        print(f">>> Ошибка yt-dlp: {error_message}")
+        return jsonify({'message': error_message}), 400
     
 
 if __name__ == '__main__':
