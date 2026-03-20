@@ -10,7 +10,7 @@ CORS(app)
 
 def get_ydl_opts():
     opts = {
-        'format': 'best',
+        'format': 'bestvideo+bestaudio/best', 
         'nocheckcertificate': True,
         'quiet': True,
         'no_warnings': True,
@@ -19,10 +19,8 @@ def get_ydl_opts():
                 'web_visit': True,
             }
         },
-        'http_headers': {
+        'headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-            'Accept': '*/*',
-            'Accept-Language': 'en-US,en;q=0.9',
             'Referer': 'https://www.tiktok.com/',
         }
     }
