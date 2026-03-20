@@ -81,21 +81,15 @@ def proxy_video():
 
 @app.route('/download', methods=['POST', 'OPTIONS'])
 def download_video():
-    if request.method == 'OPTIONS':
-        return '', 200
-
+    if request.method == 'OPTIONS': return '', 200
     data = request.get_json()
     video_url = data.get('url')
-
     try:
         with yt_dlp.YoutubeDL(get_ydl_opts()) as ydl:
             info = ydl.extract_info(video_url, download=False)
-            
-            # Отдаем все данные фронтенду
             return jsonify({
                 'title': info.get('title', 'TikTok Video'),
-                'download_url': info.get('url'), # Прямая ссылка mp4
-                'thumbnail': info.get('thumbnail')
+                'download_url': info.get('url') # Это прямая ссылка
             }), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 400    
