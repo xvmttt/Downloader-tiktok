@@ -2,12 +2,15 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS  
 import yt_dlp
 import os
+import urllib3
 import requests 
 from flask import Response
 
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 IS_RENDER = os.environ.get('RENDER')
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 @app.route('/proxy_video')
 def proxy_video():
@@ -15,21 +18,15 @@ def proxy_video():
     if not video_url:
         return "No URL provided", 400
 
-    # Оставляем только самые важные заголовки без куков (для начала)
-    # Чтобы проверить, не в куках ли была ошибка 500
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Referer': 'https://www.tiktok.com/'
     }
 
     try:
-        # Увеличиваем timeout и отключаем проверку SSL, если TikTok капризничает
+        # verify=False убирает ошибки SSL, которые часто бывают на Render
         req = requests.get(video_url, headers=headers, stream=True, timeout=20, verify=False)
         
-        # Если TikTok все равно ругается, мы выведем это в ответ
-        if req.status_code != 200:
-            return f"TikTok returned error {req.status_code}", req.status_code
-
         return Response(
             req.iter_content(chunk_size=1024*1024),
             content_type=req.headers.get('Content-Type', 'video/mp4'),
@@ -39,8 +36,7 @@ def proxy_video():
             }
         )
     except Exception as e:
-        # Это то, что выдает 500 ошибку — выводим текст ошибки на экран
-        return f"Proxy logic error: {str(e)}", 500
+        return f"Proxy Error: {str(e)}", 500
 
 def get_ydl_opts():
     cookies_content = os.environ.get('TIKTOK_COOKIES')
