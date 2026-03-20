@@ -15,16 +15,24 @@ def proxy_video():
     if not video_url:
         return "No URL provided", 400
 
+    # Берем те же настройки, что и для поиска (с куками)
+    cookies_content = os.environ.get('TIKTOK_COOKIES')
+    
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Referer': 'https://www.tiktok.com/'
+        'Referer': 'https://www.tiktok.com/',
+        # Если есть куки, передаем их и в запросе на скачивание
+        'Cookie': cookies_content if cookies_content else ""
     }
 
     try:
-        # Делаем запрос к TikTok
-        req = requests.get(video_url, headers=headers, stream=True, timeout=10)
+        # stream=True позволяет передавать видео по кусочкам, не забивая память сервера
+        req = requests.get(video_url, headers=headers, stream=True, timeout=15)
         
-        # Пересылаем ответ пользователю
+        # Если TikTok вернул ошибку, мы её увидим
+        if req.status_code != 200:
+            return f"TikTok error: {req.status_code}", req.status_code
+
         return Response(
             req.iter_content(chunk_size=1024*1024),
             content_type=req.headers.get('Content-Type'),
