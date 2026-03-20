@@ -14,29 +14,35 @@ def proxy_video():
     video_url = request.args.get('url')
     if not video_url:
         return "No URL provided", 400
-    
+
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Referer': 'https://www.tiktok.com/'
     }
-    
-    req = requests.get(video_url, headers=headers, stream=True)
-    return Response(
-        req.iter_content(chunk_size=1024*1024),
-        content_type=req.headers.get('Content-Type'),
-        headers={"Content-Disposition": "attachment; filename=video.mp4"}
-    )
+
+    try:
+        # Делаем запрос к TikTok
+        req = requests.get(video_url, headers=headers, stream=True, timeout=10)
+        
+        # Пересылаем ответ пользователю
+        return Response(
+            req.iter_content(chunk_size=1024*1024),
+            content_type=req.headers.get('Content-Type'),
+            headers={"Content-Disposition": "attachment; filename=video.mp4"}
+        )
+    except Exception as e:
+        return f"Proxy Error: {str(e)}", 500
 
 def get_ydl_opts():
     cookies_content = os.environ.get('TIKTOK_COOKIES')
-    cookie_file_path = 'temp_cookies.txt'
+    cookie_file_path = '/tmp/temp_cookies.txt' if IS_RENDER else 'temp_cookies.txt'
 
-    # Если мы на Render, создаем файл с куками из переменной окружения
     if cookies_content:
-        with open(cookie_file_path, 'w', encoding='utf-8') as f:
-            f.write(cookies_content)
-        print(">>> Куки загружены из Environment Variables")
-
+        try:
+            with open(cookie_file_path, 'w', encoding='utf-8') as f:
+                f.write(cookies_content)
+        except:
+            pass
     opts = {
         'format': 'best',
         'nocheckcertificate': True,
