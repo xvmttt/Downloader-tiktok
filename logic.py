@@ -13,7 +13,7 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 def get_ydl_opts():
-    cookies_content = os.environ.get('TIKTOK_COOKIES', '')
+    cookies_content = os.environ.get('TIKTOK_COOKIES', '').strip().replace('\n', '').replace('\t', ' ')
 
     opts = {
         'format': 'best',
