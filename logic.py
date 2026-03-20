@@ -9,33 +9,35 @@ app = Flask(__name__)
 CORS(app)
 
 def get_ydl_opts():
+    cookies_content = os.environ.get('TIKTOK_COOKIES')
+    cookie_file_path = 'temp_cookies.txt'
+
+    # Если мы на Render, создаем файл с куками из переменной окружения
+    if cookies_content:
+        with open(cookie_file_path, 'w', encoding='utf-8') as f:
+            f.write(cookies_content)
+        print(">>> Куки загружены из Environment Variables")
+
     opts = {
-        'format': 'bestvideo+bestaudio/best', 
+        'format': 'best',
         'nocheckcertificate': True,
         'quiet': True,
         'no_warnings': True,
-        'extractor_args': {
-            'tiktok': {
-                'web_visit': True,
-            }
-        },
-        'headers': {
+        'cookiefile': cookie_file_path if os.path.exists(cookie_file_path) else None,
+        'extractor_args': {'tiktok': {'web_visit': True}},
+        'http_headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept': '*/*',
             'Referer': 'https://www.tiktok.com/',
         }
     }
     
-    # Если мы НЕ на Render, используем твой локальный прокси Hiddify
     if not IS_RENDER:
         opts['proxy'] = 'http://127.0.0.1:12334'
-        print("Запуск: Локально (используем прокси)")
-    else:
-        print("Запуск: Render (прокси отключен)")
-        
-    # Куки на Render загружать сложно, попробуем сначала без них
-    if os.path.exists('cookies.txt'):
-        opts['cookiefile'] = 'cookies.txt'
-        
+        # Если дома файл называется иначе, поправь здесь:
+        if os.path.exists('cookies.txt'):
+            opts['cookiefile'] = 'cookies.txt'
+            
     return opts
 
 @app.route('/download', methods=['POST'])
