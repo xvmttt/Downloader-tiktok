@@ -34,53 +34,51 @@ function performDownload(url) {
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-            url: url         
-        })
+        body: JSON.stringify({ url: url })
     })
     .then(response => {
-    
-    return response.json().then(data => {
-        if (!response.ok) {
-            throw new Error(data.message || "Ошибка сервера");
-        }
-        return data; 
-    });
+        // Мы СНАЧАЛА читаем JSON, а потом проверяем статус
+        return response.json().then(data => {
+            if (!response.ok) {
+                // Если статус не 200, берем сообщение из пришедшего JSON
+                throw new Error(data.message || data.error || "Ошибка сервера");
+            }
+            return data; 
+        });
     })
     .then(data => {
-        try{
+        try {
             let resultDiv = document.getElementById('result');
             if (!resultDiv) {
-            resultDiv = document.createElement('div');
-            resultDiv.id = 'result';
-            document.body.appendChild(resultDiv);
+                resultDiv = document.createElement('div');
+                resultDiv.id = 'result';
+                document.body.appendChild(resultDiv);
             }
 
             const proxyUrl = `https://tiktok-saver-l18l.onrender.com/proxy_video?url=${encodeURIComponent(data.download_url)}`;
 
             resultDiv.innerHTML = `
-            <div style="margin-top: 20px; text-align: center;">
-            <h4>${data.title}</h4>
-            <video controls width="100%" style="max-width: 300px; border-radius: 8px;">
-            <source src="${proxyUrl}" type="video/mp4">
-            </video>
-            <br><br>
-            <a href="${proxyUrl}" 
-           style="padding: 10px 20px; background: #fe2c55; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
-           Скачать через сервер
-            </a>
-            </div>
+                <div style="margin-top: 20px; text-align: center;">
+                    <h4>${data.title}</h4>
+                    <video controls width="100%" style="max-width: 300px; border-radius: 8px;">
+                        <source src="${proxyUrl}" type="video/mp4">
+                    </video>
+                    <br><br>
+                    <a href="${proxyUrl}" 
+                       style="padding: 10px 20px; background: #fe2c55; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                       Скачать видео
+                    </a>
+                </div>
             `;
-
-        }catch (renderError) {
-            console.error("Ошибка при отрисовке видео:", renderError);
+        } catch (renderError) {
+            console.error("Ошибка при отрисовке:", renderError);
         }
     })
-    .catch(error =>{
+    .catch(error => {
         console.error('Детали:', error);
         showAlert(error.message);
-    })
-};
+    });
+}
 
 function showAlert(message) {
     alertMessage.textContent = message;
