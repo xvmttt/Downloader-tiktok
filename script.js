@@ -54,21 +54,21 @@ function performDownload(url) {
         downloadBtn.parentNode.insertBefore(resultDiv, downloadBtn.nextSibling);
     }
 
-    const directUrl = data.download_url;
+    // ВАЖНО: адрес твоего прокси на Render
+    const proxyUrl = `https://tiktok-saver-l18l.onrender.com/proxy_video?url=${encodeURIComponent(data.download_url)}`;
 
     resultDiv.innerHTML = `
-        <div style="margin-top: 30px; text-align: center; padding: 20px; background: #1a1a1a; border-radius: 15px; border: 1px solid #fe2c55;">
-            <h4 style="color: white; margin-bottom: 20px;">Видео найдено!</h4>
-            
-            <a href="${directUrl}" target="_blank" rel="noopener noreferrer" 
-               style="display: inline-block; padding: 15px 30px; background: #fe2c55; color: white; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 15px rgba(254, 44, 85, 0.5);">
-               СКАЧАТЬ MP4
+        <div style="margin-top: 20px; text-align: center;">
+            <h4 style="color: white;">${data.title}</h4>
+            <video controls width="100%" style="max-width: 320px; border-radius: 10px; border: 2px solid #fe2c55; background: #000;">
+                <source src="${proxyUrl}" type="video/mp4">
+                Ваш браузер не поддерживает видео.
+            </video>
+            <br><br>
+            <a href="${proxyUrl}" download="video.mp4" 
+               style="display: inline-block; padding: 10px 20px; background: #fe2c55; color: white; text-decoration: none; border-radius: 20px; font-weight: bold;">
+               Скачать файл
             </a>
-
-            <p style="color: #888; font-size: 13px; margin-top: 20px;">
-                Нажмите на кнопку, видео откроется в новой вкладке.<br>
-                Затем нажмите <b>правой кнопкой мыши</b> (или зажмите пальцем) и выберите <b>"Сохранить видео"</b>.
-            </p>
         </div>
     `;
 })
