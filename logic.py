@@ -39,5 +39,7 @@ def download_video():
         return jsonify({'message': str(e)}), 500
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 10000))
+    # Render передает порт через переменную окружения
+    port = int(os.environ.get("PORT", 5000)) 
+    # Важно: host='0.0.0.0' обязателен для внешнего доступа
     app.run(host='0.0.0.0', port=port)
