@@ -1,57 +1,40 @@
-from flask import Flask, request, jsonify, Response
-from flask_cors import CORS
-import yt_dlp
 import os
 import requests
-import urllib3
-
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 app = Flask(__name__)
-# Включаем CORS максимально широко, чтобы ошибки не маскировались под CORS
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app)
 
-COOKIE_PATH = '/tmp/tiktok_cookies.txt'
-
-def prepare_cookies():
-    if not os.path.exists(COOKIE_PATH):
-        initial_cookies = os.environ.get('TIKTOK_COOKIES', '')
-        if initial_cookies:
-            with open(COOKIE_PATH, 'w', encoding='utf-8') as f:
-                f.write(initial_cookies)
-
-def get_ydl_opts():
-    prepare_cookies()
-    return {
-        'format': 'best',
-        'nocheckcertificate': True,
-        'quiet': True,
-        'no_warnings': True,
-        'cookiefile': COOKIE_PATH if os.path.exists(COOKIE_PATH) else None,
-        'extractor_args': {'tiktok': {'web_visit': True}},
-        'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-            'Referer': 'https://www.tiktok.com/',
-        }
-    }
+TIKWM_API_URL = "https://www.tikwm.com/api/"
 
 @app.route('/download', methods=['POST', 'OPTIONS'])
 def download_video():
     if request.method == 'OPTIONS':
-        return Response(status=200, headers={
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST',
-            'Access-Control-Allow-Headers': 'Content-Type'
-        })
+        return '', 200
     
     data = request.get_json()
+    video_url = data.get('url')
+    
+    if not video_url:
+        return jsonify({'message': 'URL is required'}), 400
+
     try:
-        with yt_dlp.YoutubeDL(get_ydl_opts()) as ydl:
-            info = ydl.extract_info(data.get('url'), download=False)
+        # Отправляем запрос к бесплатному API TikWM
+        response = requests.get(TIKWM_API_URL, params={'url': video_url})
+        res_data = response.json()
+
+        if res_data.get('code') == 0:
+            video_info = res_data['data']
             return jsonify({
-                'title': info.get('title', 'TikTok Video'),
-                'download_url': info.get('url') # Ссылка от TikTok
+                'title': video_info.get('title', 'TikTok Video'),
+                # 'play' - это видео без водяного знака
+                'download_url': "https://www.tikwm.com" + video_info.get('play'),
+                'author': video_info.get('author', {}).get('nickname')
             }), 200
+        else:
+            return jsonify({'message': 'TikTok API error: ' + res_data.get('msg', 'Unknown')}), 400
+
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 

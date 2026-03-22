@@ -47,34 +47,28 @@ function performDownload(url) {
         });
     })
     .then(data => {
-        // Исправляем ошибку "Cannot set properties of null"
         let resultDiv = document.getElementById('result');
         if (!resultDiv) {
             resultDiv = document.createElement('div');
             resultDiv.id = 'result';
-            // Вставляем после кнопки или в конец контейнера
             const mainBtn = document.querySelector('button');
             mainBtn.parentNode.insertBefore(resultDiv, mainBtn.nextSibling);
         }
 
-        const directUrl = data.download_url;
-
         resultDiv.innerHTML = `
-            <div style="margin-top: 30px; text-align: center; padding: 20px; background: #1a1a1a; border-radius: 15px; border: 2px solid #fe2c55;">
-                <h4 style="color: white; margin-bottom: 20px;">Видео найдено!</h4>
+            <div style="margin-top: 30px; text-align: center; padding: 25px; background: #1a1a1a; border-radius: 20px; border: 2px solid #00f2ea;">
+                <h4 style="color: white; margin-bottom: 5px;">${data.title}</h4>
+                <p style="color: #00f2ea; margin-bottom: 20px;">Автор: ${data.author}</p>
                 
-                <a href="${directUrl}" 
+                <a href="${data.download_url}" 
                 target="_blank" 
-                rel="noreferrer" 
-                download="tiktok_video.mp4"
-                style="display: inline-block; padding: 15px 30px; background: #fe2c55; color: white; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 15px rgba(254, 44, 85, 0.4);">
-                СКАЧАТЬ MP4
+                download="video.mp4"
+                style="display: inline-block; padding: 15px 35px; background: linear-gradient(45deg, #fe2c55, #25f4ee); color: black; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 15px rgba(37, 244, 238, 0.3);">
+                СКАЧАТЬ БЕЗ ВОДЯНОГО ЗНАКА
                 </a>
 
-                <p style="color: #888; font-size: 13px; margin-top: 20px; line-height: 1.4;">
-                    Если видео открылось в новой вкладке:<br>
-                    <b>На смартфоне:</b> зажмите видео и выберите "Сохранить".<br>
-                    <b>На ПК:</b> нажмите правой кнопкой → "Сохранить как".
+                <p style="color: #888; font-size: 12px; margin-top: 20px;">
+                    Если видео открылось в браузере — нажмите "три точки" и выберите <b>Скачать</b>.
                 </p>
             </div>
         `;
