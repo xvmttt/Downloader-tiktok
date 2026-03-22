@@ -54,6 +54,10 @@ def proxy_video():
     video_url = request.args.get('url')
     if not video_url: return "No URL", 400
 
+    # Вместо того чтобы совать весь текст из переменной в заголовок,
+    # мы будем использовать пустой словарь cookies для начала.
+    # Если TikTok потребует их для проксирования, мы вытащим их правильно.
+    
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Referer': 'https://www.tiktok.com/',
@@ -61,16 +65,29 @@ def proxy_video():
     }
 
     try:
+        # ВАЖНО: Мы НЕ передаем заголовок 'Cookie' строкой. 
+        # Requests сам разберется, если мы просто пойдем по ссылке.
         r = requests.get(video_url, headers=headers, stream=True, verify=False, timeout=20)
+        
         def generate():
             for chunk in r.iter_content(chunk_size=1024*1024):
                 yield chunk
         
-        return Response(generate(), 
-                        status=r.status_code, 
-                        content_type=r.headers.get('Content-Type', 'video/mp4'),
-                        headers={'Access-Control-Allow-Origin': '*'})
+        # Пересылаем ответ
+        response = Response(generate(), 
+                            status=r.status_code, 
+                            content_type=r.headers.get('Content-Type', 'video/mp4'))
+        
+        # Добавляем заголовки CORS вручную, чтобы браузер не ругался
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Accept-Ranges'] = 'bytes'
+        if 'Content-Range' in r.headers:
+            response.headers['Content-Range'] = r.headers['Content-Range']
+            
+        return response
+
     except Exception as e:
+        logger.error(f"Proxy Critical Error: {str(e)}")
         return f"Proxy Error: {str(e)}", 500
 
 @app.route('/download', methods=['POST', 'OPTIONS'])
