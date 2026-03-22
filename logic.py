@@ -36,39 +36,14 @@ def get_ydl_opts():
         }
     }
 
-@app.route('/proxy_video')
-def proxy_video():
-    video_url = request.args.get('url')
-    if not video_url: return "No URL", 400
-
-    # Здесь мы НЕ передаем заголовок 'Cookie' из переменной, 
-    # чтобы не вызвать ошибку InvalidHeader
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Referer': 'https://www.tiktok.com/',
-        'Range': request.headers.get('Range', 'bytes=0-')
-    }
-
-    try:
-        r = requests.get(video_url, headers=headers, stream=True, verify=False, timeout=15)
-        
-        def generate():
-            for chunk in r.iter_content(chunk_size=1024*512):
-                yield chunk
-        
-        resp = Response(generate(), status=r.status_code, content_type='video/mp4')
-        resp.headers['Access-Control-Allow-Origin'] = '*'
-        resp.headers['Accept-Ranges'] = 'bytes'
-        if 'Content-Range' in r.headers:
-            resp.headers['Content-Range'] = r.headers['Content-Range']
-        return resp
-    except Exception as e:
-        return str(e), 500
-
 @app.route('/download', methods=['POST', 'OPTIONS'])
 def download_video():
     if request.method == 'OPTIONS':
-        return Response(status=200, headers={'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type'})
+        return Response(status=200, headers={
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'POST',
+            'Access-Control-Allow-Headers': 'Content-Type'
+        })
     
     data = request.get_json()
     try:
@@ -76,7 +51,7 @@ def download_video():
             info = ydl.extract_info(data.get('url'), download=False)
             return jsonify({
                 'title': info.get('title', 'Video'),
-                'download_url': info.get('url')
+                'download_url': info.get('url') # Прямая ссылка на mp4
             }), 200
     except Exception as e:
         return jsonify({'message': str(e)}), 500
