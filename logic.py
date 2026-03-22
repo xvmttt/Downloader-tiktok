@@ -4,11 +4,11 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}}) 
 
 TIKWM_API_URL = "https://www.tikwm.com/api/"
 
-@app.route('/download', methods=['POST', 'OPTIONS'])
+@app.route('/download', methods=['POST']) # Уберите 'OPTIONS' из методов, Flask-CORS сам их обработает
 def download_video():
     if request.method == 'OPTIONS':
         return '', 200
