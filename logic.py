@@ -14,7 +14,6 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 COOKIE_PATH = '/tmp/tiktok_cookies.txt'
 
 def prepare_cookies():
-    """Создает файл куков, если его нет. Никаких принтов в заголовки!"""
     if not os.path.exists(COOKIE_PATH):
         initial_cookies = os.environ.get('TIKTOK_COOKIES', '')
         if initial_cookies:
@@ -35,6 +34,42 @@ def get_ydl_opts():
             'Referer': 'https://www.tiktok.com/',
         }
     }
+
+@app.route('/proxy_video')
+def proxy_video():
+    video_url = request.args.get('url')
+    if not video_url: return "No URL", 400
+
+    # Берем куки из файла, который создал yt-dlp
+    # Это КРИТИЧНО для того, чтобы TikTok думал, что качает тот же, кто и искал
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Referer': 'https://www.tiktok.com/',
+        'Accept': '*/*',
+        'Connection': 'keep-alive'
+    }
+
+    try:
+        # Запрашиваем видео от лица сервера
+        # Мы НЕ передаем Range здесь, чтобы получить поток целиком или кусками
+        r = requests.get(video_url, headers=headers, stream=True, verify=False, timeout=30)
+        
+        def generate():
+            for chunk in r.iter_content(chunk_size=128*1024): # Чанки по 128КБ
+                yield chunk
+
+        # Создаем ответ и ПРИНУДИТЕЛЬНО ставим тип video/mp4
+        response = Response(generate(), status=r.status_code)
+        response.headers['Content-Type'] = 'video/mp4'
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        # Убираем привязку к кэшу, чтобы TikTok не ругался
+        response.headers['Cache-Control'] = 'no-cache'
+        
+        return response
+
+    except Exception as e:
+        logger.error(f"Proxy failed: {str(e)}")
+        return "Proxy Error", 500
 
 @app.route('/download', methods=['POST', 'OPTIONS'])
 def download_video():
