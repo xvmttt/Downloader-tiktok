@@ -47,21 +47,30 @@ function performDownload(url) {
         });
     })
     .then(data => {
+        // 1. Пытаемся найти контейнер для результата
         let resultDiv = document.getElementById('result');
-        // ... (код проверки resultDiv тот же)
 
-        // Формируем ссылку через твой прокси на Render
+        // 2. Если его нет (null), создаем его динамически
+        if (!resultDiv) {
+            resultDiv = document.createElement('div');
+            resultDiv.id = 'result';
+            
+            // Находим кнопку или форму, после которой вставим результат
+            const container = document.querySelector('.container') || document.body;
+            container.appendChild(resultDiv);
+        }
+
         const proxyUrl = `https://tiktok-saver-l18l.onrender.com/proxy_video?url=${encodeURIComponent(data.download_url)}`;
 
+        // 3. Теперь, когда resultDiv точно существует, меняем innerHTML
         resultDiv.innerHTML = `
             <div style="margin-top: 20px; text-align: center; background: #111; padding: 15px; border-radius: 15px;">
                 <h4 style="color: white; font-size: 14px;">${data.title}</h4>
                 <video controls playsinline width="100%" style="max-width: 280px; border-radius: 10px; margin-top: 10px;">
                     <source src="${proxyUrl}" type="video/mp4">
-                    Ваш браузер не поддерживает видео.
                 </video>
                 <div style="margin-top: 15px;">
-                    <a href="${proxyUrl}" download="tiktok_video.mp4" 
+                    <a href="${proxyUrl}" download="video.mp4" 
                     style="display: inline-block; padding: 10px 25px; background: #fe2c55; color: white; text-decoration: none; border-radius: 25px; font-weight: bold;">
                     СКАЧАТЬ MP4
                     </a>
