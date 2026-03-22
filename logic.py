@@ -4,28 +4,42 @@ import yt_dlp
 import os
 import requests
 import urllib3
-import time
+import logging
+
+# Включаем логирование, чтобы видеть ошибки в консоли Render
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 app = Flask(__name__)
-CORS(app)
+# Разрешаем CORS для всех доменов, чтобы GitHub Pages мог достучаться
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 COOKIE_PATH = '/tmp/tiktok_cookies.txt'
 
+def prepare_cookies():
+    """Создает файл куков из переменной окружения, если его нет"""
+    try:
+        if not os.path.exists(COOKIE_PATH):
+            initial_cookies = os.environ.get('TIKTOK_COOKIES', '')
+            if initial_cookies:
+                with open(COOKIE_PATH, 'w', encoding='utf-8') as f:
+                    f.write(initial_cookies)
+                logger.info(f"Cookie jar created at {COOKIE_PATH}")
+            else:
+                logger.warning("TIKTOK_COOKIES environment variable is empty!")
+    except Exception as e:
+        logger.error(f"Error preparing cookies: {str(e)}")
+
 def get_ydl_opts():
-    if not os.path.exists(COOKIE_PATH):
-        initial_cookies = os.environ.get('TIKTOK_COOKIES', '')
-        with open(COOKIE_PATH, 'w') as f:
-            f.write(initial_cookies)
-            
+    prepare_cookies()
     return {
         'format': 'best',
         'nocheckcertificate': True,
         'quiet': True,
         'no_warnings': True,
-        # КЛЮЧЕВОЙ МОМЕНТ: yt-dlp будет читать И записывать обновления сюда
-        'cookiefile': COOKIE_PATH, 
+        'cookiefile': COOKIE_PATH if os.path.exists(COOKIE_PATH) else None,
         'extractor_args': {'tiktok': {'web_visit': True}},
         'http_headers': {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
@@ -40,32 +54,33 @@ def proxy_video():
     video_url = request.args.get('url')
     if not video_url: return "No URL", 400
 
-    cookies_content = os.environ.get('TIKTOK_COOKIES', '').strip()
-    
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Referer': 'https://www.tiktok.com/',
-        'Cookie': cookies_content,
         'Range': request.headers.get('Range', 'bytes=0-')
     }
 
-    # Делаем запрос к TikTok
-    r = requests.get(video_url, headers=headers, stream=True, verify=False, timeout=20)
-    
-    # Пересылаем ответ TikTok пользователю
-    def generate():
-        for chunk in r.iter_content(chunk_size=1024*1024):
-            yield chunk
-
-    return Response(generate(), 
-                    status=r.status_code, 
-                    content_type=r.headers.get('Content-Type', 'video/mp4'),
-                    headers={'Access-Control-Allow-Origin': '*'})
+    try:
+        r = requests.get(video_url, headers=headers, stream=True, verify=False, timeout=20)
+        def generate():
+            for chunk in r.iter_content(chunk_size=1024*1024):
+                yield chunk
+        
+        return Response(generate(), 
+                        status=r.status_code, 
+                        content_type=r.headers.get('Content-Type', 'video/mp4'),
+                        headers={'Access-Control-Allow-Origin': '*'})
+    except Exception as e:
+        return f"Proxy Error: {str(e)}", 500
 
 @app.route('/download', methods=['POST', 'OPTIONS'])
 def download_video():
     if request.method == 'OPTIONS': return '', 200
+    
     data = request.get_json()
+    if not data or 'url' not in data:
+        return jsonify({'message': 'No URL provided'}), 400
+
     try:
         with yt_dlp.YoutubeDL(get_ydl_opts()) as ydl:
             info = ydl.extract_info(data.get('url'), download=False)
@@ -74,7 +89,9 @@ def download_video():
                 'download_url': info.get('url')
             }), 200
     except Exception as e:
-        return jsonify({'message': str(e)}), 400
+        logger.error(f"yt-dlp error: {str(e)}")
+        return jsonify({'message': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 10000)))
+    port = int(os.environ.get('PORT', 10000))
+    app.run(host='0.0.0.0', port=port)
