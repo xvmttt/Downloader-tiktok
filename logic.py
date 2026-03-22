@@ -34,14 +34,7 @@ def get_ydl_opts():
             'Referer': 'https://www.tiktok.com/',
         }
     }
-    
-    # Если на Render нет файла, мы можем подгрузить "стартовый капитал" из переменной
-    if not os.path.exists(cookie_path):
-        initial_cookies = os.environ.get('TIKTOK_COOKIES', '')
-        with open(cookie_path, 'w') as f:
-            f.write(initial_cookies)
-            
-    return opts
+
 @app.route('/proxy_video')
 def proxy_video():
     video_url = request.args.get('url')
