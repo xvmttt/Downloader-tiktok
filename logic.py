@@ -4,26 +4,44 @@ import yt_dlp
 import os
 import requests
 import urllib3
+import time
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 app = Flask(__name__)
 CORS(app)
 
+COOKIE_PATH = '/tmp/tiktok_cookies.txt'
+
 def get_ydl_opts():
-    cookies_content = os.environ.get('TIKTOK_COOKIES', '').strip().replace('\n', '').replace('\t', ' ')
+    if not os.path.exists(COOKIE_PATH):
+        initial_cookies = os.environ.get('TIKTOK_COOKIES', '')
+        with open(COOKIE_PATH, 'w') as f:
+            f.write(initial_cookies)
+            
     return {
         'format': 'best',
         'nocheckcertificate': True,
         'quiet': True,
+        'no_warnings': True,
+        # КЛЮЧЕВОЙ МОМЕНТ: yt-dlp будет читать И записывать обновления сюда
+        'cookiefile': COOKIE_PATH, 
         'extractor_args': {'tiktok': {'web_visit': True}},
         'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-            'Cookie': cookies_content,
-            'Referer': 'https://www.tiktok.com/'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Referer': 'https://www.tiktok.com/',
         }
     }
-
+    
+    # Если на Render нет файла, мы можем подгрузить "стартовый капитал" из переменной
+    if not os.path.exists(cookie_path):
+        initial_cookies = os.environ.get('TIKTOK_COOKIES', '')
+        with open(cookie_path, 'w') as f:
+            f.write(initial_cookies)
+            
+    return opts
 @app.route('/proxy_video')
 def proxy_video():
     video_url = request.args.get('url')
